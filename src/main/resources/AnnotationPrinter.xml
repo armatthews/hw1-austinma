@@ -20,7 +20,7 @@
       <nameValuePair>
         <name>outputFile</name>
         <value>
-          <string>src/main/resources/data/sample.out</string>
+          <string>hw1-austinma.out</string>
         </value>
       </nameValuePair>
     </configurationParameterSettings>
