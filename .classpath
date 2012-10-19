@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" output="target/classes" path="src/main/java"/>
-	<classpathentry excluding="**" kind="src" output="target/classes" path="src/main/resources"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
-	<classpathentry kind="con" path="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER"/>
-	<classpathentry kind="lib" path="/home/armatthe/git/hw1-austinma/hw1-austinma/src/lingpipe-4.1.0.jar"/>
-	<classpathentry kind="output" path="target/classes"/>
+	<classpathentry kind="src" path=""/>
+	<classpathentry kind="lib" path="/home/armatthe/git/hw1-austinma/src/lingpipe-4.1.0.jar"/>
+	<classpathentry kind="output" path="bin"/>
 </classpath>
