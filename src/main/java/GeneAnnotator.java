@@ -17,9 +17,13 @@
  * under the License.
  */
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashSet;
 
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.CasAnnotator_ImplBase;
@@ -70,16 +74,18 @@ public class GeneAnnotator extends CasAnnotator_ImplBase {
    * Show warning message just once
    */
   private boolean warningMsgShown = false;
-  
+
   /**
    * File location of NER model
    */
   File nerModelFile;
-  
+
   /**
    * Ling pipe chunker that will do the NER for us
    */
   Chunker chunker;
+
+  HashSet geneDictionary;
 
   private Logger logger;
 
@@ -97,20 +103,40 @@ public class GeneAnnotator extends CasAnnotator_ImplBase {
     // write log messages
     logger = getContext().getLogger();
     logger.log(Level.CONFIG, "GeneAnnotator initialized");
-    
+
     // Set up lingpipe
     nerModelFile = new File("src/main/resources/ne-en-bio-genetag.HmmChunker");
     try {
       chunker = (Chunker) AbstractExternalizable.readObject(nerModelFile);
     } catch (IOException e) {
       System.err.println("IOException in creating chunker");
-      throw new ResourceInitializationException("Unable to load NER model file", "load_ner_model_error",
-              new Object[] { nerModelFile }, e);
+      throw new ResourceInitializationException("Unable to load NER model file",
+              "load_ner_model_error", new Object[] { nerModelFile }, e);
     } catch (ClassNotFoundException e) {
       System.err.println("ClassNotFoundException in creating chunker");
-      throw new ResourceInitializationException("Unable to load NER model file", "load_ner_model_error",
-              new Object[] { nerModelFile }, e);
+      throw new ResourceInitializationException("Unable to load NER model file",
+              "load_ner_model_error", new Object[] { nerModelFile }, e);
     }
+
+    // Read in the geneDictionary
+    /*geneDictionary = new HashSet<String>();
+    try {
+      File geneDictionaryFile = new File("src/main/resources/mesh.lc");
+      BufferedReader reader = new BufferedReader(new FileReader(geneDictionaryFile));
+      String line;
+      try {
+        while ((line = reader.readLine()) != null)
+          geneDictionary.add(line);
+      } catch (IOException e) {
+        System.err.println("IOException in reading gene dictionary file");
+        throw new ResourceInitializationException("Unable to load gene dictionary file",
+                "load_gene_dic_error", new Object[] {}, e);
+      }
+    } catch (FileNotFoundException e) {
+      System.err.println("FileNotFoundException in reading gene dictionary file");
+      throw new ResourceInitializationException("Unable to find gene dictionary file",
+              "load_gene_dic_error", new Object[] {}, e);
+    }*/
   }
 
   /**
@@ -169,7 +195,7 @@ public class GeneAnnotator extends CasAnnotator_ImplBase {
         // Search the whole document for gene annotations
         String text = aCAS.getDocumentText();
         String[] lines = text.split("\n");
-        for(String line: lines) {
+        for (String line : lines) {
           annotateRange(aCAS, line, 0);
         }
       } else {
@@ -222,18 +248,36 @@ public class GeneAnnotator extends CasAnnotator_ImplBase {
     int firstNewLine = aText.indexOf("\n");
     String sentenceID = aText.substring(0, firstSpace);
     String sentenceText = aText.substring(firstSpace + 1);
+    HashSet<Span> annotatedSpans = new HashSet<Span>();
+    
       Chunking chunking = chunker.chunk(sentenceText);
       for (Chunk chunk : chunking.chunkSet()) {
 
         int start = chunk.start();
         int end = chunk.end();
         String spanText = sentenceText.substring(start, end);
-        start -= getOffset(sentenceText, start);
-        end -= getOffset(sentenceText, end) + 1;
+        annotatedSpans.add(new Span(start, end));
 
-        createAnnotation(aCAS, sentenceID, start, end, spanText);
+        createAnnotation(aCAS, sentenceID, start, end, spanText, sentenceText);
         System.out.println(String.format("%s|%d %d|%s", sentenceID, start, end, spanText));
       }
+      
+      /*for(int start = 0; start < sentenceText.length(); start++) {
+        if(start != 0 && sentenceText.charAt(start - 1) != ' ')
+          continue;
+        
+        for(int end = start+1; end < sentenceText.length(); end++) {
+          if(end != sentenceText.length() - 1 && sentenceText.charAt(end+1) != ' ')
+            continue;
+          
+          String spanText = sentenceText.substring(start, end);
+          if(geneDictionary.contains(spanText) && !annotatedSpans.contains(new Span(start, end))) {
+            annotatedSpans.add(new Span(start, end));
+            createAnnotation(aCAS, sentenceID, start, end, spanText, sentenceText);
+            System.out.println(String.format("%s|%d %d|%s", sentenceID, start, end, spanText));
+          }
+        }
+      }*/
   }
 
   /**
@@ -249,7 +293,9 @@ public class GeneAnnotator extends CasAnnotator_ImplBase {
    *          the annotation, so that (end - begin) = length.
    */
   protected void createAnnotation(CAS aCAS, String sentenceID, int aBeginPos, int aEndPos,
-          String span) {
+          String span, String sentenceText) {
+    aBeginPos -= getOffset(sentenceText, aBeginPos);
+    aEndPos -= getOffset(sentenceText, aEndPos) + 1;
     GeneAnnotation annotation = (GeneAnnotation) aCAS.createAnnotation(mGeneAnnotationType,
             aBeginPos, aEndPos);
     annotation.setSentenceID(sentenceID);
