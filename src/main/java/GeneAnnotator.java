@@ -22,6 +22,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -105,8 +107,8 @@ public class GeneAnnotator extends CasAnnotator_ImplBase {
     logger.log(Level.CONFIG, "GeneAnnotator initialized");
 
     // Set up lingpipe
-    nerModelFile = new File("src/main/resources/ne-en-bio-genetag.HmmChunker");
     try {
+      nerModelFile = new File(new URI(GeneAnnotator.class.getResource("/ne-en-bio-genetag.HmmChunker").toString()));
       chunker = (Chunker) AbstractExternalizable.readObject(nerModelFile);
     } catch (IOException e) {
       System.err.println("IOException in creating chunker");
@@ -114,6 +116,10 @@ public class GeneAnnotator extends CasAnnotator_ImplBase {
               "load_ner_model_error", new Object[] { nerModelFile }, e);
     } catch (ClassNotFoundException e) {
       System.err.println("ClassNotFoundException in creating chunker");
+      throw new ResourceInitializationException("Unable to load NER model file",
+              "load_ner_model_error", new Object[] { nerModelFile }, e);
+    } catch(URISyntaxException e) {
+      System.err.println("URISyntaxException in creating chunker");
       throw new ResourceInitializationException("Unable to load NER model file",
               "load_ner_model_error", new Object[] { nerModelFile }, e);
     }
